@@ -470,7 +470,8 @@ type GossipTopicInfo interface {
 
 type GossipOut interface {
 	GossipTopicInfo
-	PublishL2Payload(ctx context.Context, msg *eth.ExecutionPayloadEnvelope, signer Signer) error
+	SignAndPublishL2Payload(ctx context.Context, msg *eth.ExecutionPayloadEnvelope, signer Signer) error
+	PublishSignedL2Payload(ctx context.Context, signedEnvelope *eth.SignedExecutionPayloadEnvelope) error
 	Close() error
 }
 
@@ -548,7 +549,32 @@ func (p *publisher) BlocksTopicV4Peers() []peer.ID {
 	return p.blocksV4.topic.ListPeers()
 }
 
-func (p *publisher) PublishL2Payload(ctx context.Context, envelope *eth.ExecutionPayloadEnvelope, signer Signer) error {
+func (p *publisher) PublishSignedL2Payload(ctx context.Context, signedEnvelope *eth.SignedExecutionPayloadEnvelope) error {
+	res := msgBufPool.Get().(*[]byte)
+	buf := bytes.NewBuffer((*res)[:0])
+	defer func() {
+		*res = buf.Bytes()
+		defer msgBufPool.Put(res)
+	}()
+
+	buf.Write(signedEnvelope.Signature[:])
+
+	if signedEnvelope.Envelope.ParentBeaconBlockRoot != nil {
+		if _, err := signedEnvelope.Envelope.MarshalSSZ(buf); err != nil {
+			return fmt.Errorf("failed to encoded execution payload envelope to publish: %w", err)
+		}
+	} else {
+		if _, err := signedEnvelope.Envelope.ExecutionPayload.MarshalSSZ(buf); err != nil {
+			return fmt.Errorf("failed to encoded execution payload to publish: %w", err)
+		}
+	}
+
+	data := buf.Bytes()
+	timestamp := uint64(signedEnvelope.Envelope.ExecutionPayload.Timestamp)
+	return p.publishRawSignedPayload(ctx, timestamp, data)
+}
+
+func (p *publisher) SignAndPublishL2Payload(ctx context.Context, envelope *eth.ExecutionPayloadEnvelope, signer Signer) error {
 	res := msgBufPool.Get().(*[]byte)
 	buf := bytes.NewBuffer((*res)[:0])
 	defer func() {
@@ -575,16 +601,19 @@ func (p *publisher) PublishL2Payload(ctx context.Context, envelope *eth.Executio
 		return fmt.Errorf("failed to sign execution payload with signer: %w", err)
 	}
 	copy(data[:65], sig[:])
+	return p.publishRawSignedPayload(ctx, uint64(envelope.ExecutionPayload.Timestamp), data)
+}
 
+func (p *publisher) publishRawSignedPayload(ctx context.Context, timestamp uint64, data []byte) error {
 	// compress the full message
 	// This also copies the data, freeing up the original buffer to go back into the pool
 	out := snappy.Encode(nil, data)
 
-	if p.cfg.IsIsthmus(uint64(envelope.ExecutionPayload.Timestamp)) {
+	if p.cfg.IsIsthmus(timestamp) {
 		return p.blocksV4.topic.Publish(ctx, out)
-	} else if p.cfg.IsEcotone(uint64(envelope.ExecutionPayload.Timestamp)) {
+	} else if p.cfg.IsEcotone(timestamp) {
 		return p.blocksV3.topic.Publish(ctx, out)
-	} else if p.cfg.IsCanyon(uint64(envelope.ExecutionPayload.Timestamp)) {
+	} else if p.cfg.IsCanyon(timestamp) {
 		return p.blocksV2.topic.Publish(ctx, out)
 	} else {
 		return p.blocksV1.topic.Publish(ctx, out)

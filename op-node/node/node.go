@@ -476,6 +476,7 @@ func (n *OpNode) initRPCServer(cfg *Config) error {
 	if p2pNode := n.getP2PNodeIfEnabled(); p2pNode != nil {
 		server.EnableP2P(p2p.NewP2PAPIBackend(p2pNode, n.log, n.metrics))
 	}
+	server.EnableOpstackAPI(n.l2Driver.Engine, n)
 	if cfg.RPC.EnableAdmin {
 		server.EnableAdminAPI(NewAdminAPI(n.l2Driver, n.metrics, n.log))
 		n.log.Info("Admin RPC enabled")
@@ -623,17 +624,25 @@ func (n *OpNode) OnNewL1Finalized(ctx context.Context, sig eth.L1BlockRef) {
 	}
 }
 
-func (n *OpNode) PublishL2Payload(ctx context.Context, envelope *eth.ExecutionPayloadEnvelope) error {
+func (n *OpNode) PublishBlock(ctx context.Context, signedEnvelope *eth.SignedExecutionPayloadEnvelope) error {
+	n.tracer.OnPublishL2Payload(ctx, signedEnvelope.Envelope)
+	if p2pNode := n.getP2PNodeIfEnabled(); p2pNode != nil {
+		n.log.Info("Publishing signed execution payload on p2p", "id", signedEnvelope.ID())
+		return p2pNode.GossipOut().PublishSignedL2Payload(ctx, signedEnvelope)
+	}
+	return errors.New("P2P not enabled")
+}
+
+func (n *OpNode) SignAndPublishL2Payload(ctx context.Context, envelope *eth.ExecutionPayloadEnvelope) error {
 	n.tracer.OnPublishL2Payload(ctx, envelope)
 
 	// publish to p2p, if we are running p2p at all
 	if p2pNode := n.getP2PNodeIfEnabled(); p2pNode != nil {
-		payload := envelope.ExecutionPayload
 		if n.p2pSigner == nil {
-			return fmt.Errorf("node has no p2p signer, payload %s cannot be published", payload.ID())
+			return fmt.Errorf("node has no p2p signer, payload %s cannot be published", envelope.ID())
 		}
-		n.log.Info("Publishing signed execution payload on p2p", "id", payload.ID())
-		return p2pNode.GossipOut().PublishL2Payload(ctx, envelope, n.p2pSigner)
+		n.log.Info("Publishing signed execution payload on p2p", "id", envelope.ID())
+		return p2pNode.GossipOut().SignAndPublishL2Payload(ctx, envelope, n.p2pSigner)
 	}
 	// if p2p is not enabled then we just don't publish the payload
 	return nil

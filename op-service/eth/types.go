@@ -223,13 +223,29 @@ type Uint256Quantity = hexutil.U256
 
 type Data = hexutil.Bytes
 
-type (
-	PayloadID   = engine.PayloadID
-	PayloadInfo struct {
-		ID        PayloadID
-		Timestamp uint64
-	}
-)
+type PayloadID = engine.PayloadID
+
+type PayloadInfo struct {
+	ID        PayloadID `json:"id"`
+	Timestamp uint64    `json:"timestamp"`
+}
+
+type SignedExecutionPayloadEnvelope struct {
+	Envelope  *ExecutionPayloadEnvelope `json:"envelope"`
+	Signature Bytes65                   `json:"signature"`
+}
+
+func (s *SignedExecutionPayloadEnvelope) ID() BlockID {
+	return s.Envelope.ExecutionPayload.ID()
+}
+
+func (s *SignedExecutionPayloadEnvelope) String() string {
+	return fmt.Sprintf("signedEnvelope(%s)", s.ID())
+}
+
+func (s *SignedExecutionPayloadEnvelope) VerifySignature() error {
+	return errors.New("TODO")
+}
 
 type ExecutionPayloadEnvelope struct {
 	ParentBeaconBlockRoot *common.Hash      `json:"parentBeaconBlockRoot,omitempty"`
