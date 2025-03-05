@@ -61,13 +61,29 @@ func (v *MultiTrigger) Data() ([]byte, error) {
 	return nil, nil
 }
 
-type IntentTx[V Call] struct {
-	PlannedTx *PlannedTx
-	Content   plan.Lazy[V]
+type Result interface {
+	FromReceipt(rec *types.Receipt) error
 }
 
-func NewIntent[V Call](opts ...Option) *IntentTx[V] {
-	v := &IntentTx[V]{
+type InteropOutputEntry struct {
+	LogIndex uint32
+	Origin   common.Address
+	Topics   []common.Hash
+	Data     []byte
+}
+
+type InteropOutput struct {
+	Entries []InteropOutputEntry
+}
+
+type IntentTx[V Call, R Result] struct {
+	PlannedTx *PlannedTx
+	Content   plan.Lazy[V]
+	Result    plan.Lazy[R]
+}
+
+func NewIntent[V Call, R Result](opts ...Option) *IntentTx[V, R] {
+	v := &IntentTx[V, R]{
 		PlannedTx: NewPlannedTx(opts...),
 	}
 	v.PlannedTx.To.DependOn(&v.Content)
@@ -77,6 +93,12 @@ func NewIntent[V Call](opts ...Option) *IntentTx[V] {
 	v.PlannedTx.Data.DependOn(&v.Content)
 	v.PlannedTx.Data.Fn(func(ctx context.Context) (hexutil.Bytes, error) {
 		return v.Content.Value().Data()
+	})
+	v.Result.DependOn(&v.PlannedTx.Included)
+	v.Result.Fn(func(ctx context.Context) (R, error) {
+		var r R
+		err := r.FromReceipt(v.PlannedTx.Included.Value())
+		return r, err
 	})
 	return v
 }
@@ -116,7 +138,7 @@ func TestInteropTx(t *testing.T) {
 		// TODO: add options that submit and confirm the tx etc.
 	}
 
-	txA := NewIntent[*InitTrigger](opts...)
+	txA := NewIntent[*InitTrigger, *InteropOutput](opts...)
 	txA.Content.Set(&InitTrigger{
 		Emitter:    eventLogger,
 		Topics:     []common.Hash{},
