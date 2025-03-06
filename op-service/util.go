@@ -189,9 +189,6 @@ func NewL1Client(l1Rpc *rpc.Client) *L1Client {
 }
 
 func DialL1Client(l1RpcURL string) (*L1Client, error) {
-	if l1RpcURL == "" {
-		return nil, fmt.Errorf("l1 Rpc Url is required")
-	}
 	l1Rpc, err := rpc.Dial(l1RpcURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to L1 RPC: %w", err)

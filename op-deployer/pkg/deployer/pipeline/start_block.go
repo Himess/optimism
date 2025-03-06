@@ -34,7 +34,7 @@ func SetStartBlockLiveStrategy(ctx context.Context, env *Env, st *state.State, c
 	return nil
 }
 
-func SetStartBlockGenesisStrategy(env *Env, st *state.State, chainID common.Hash) error {
+func SetStartBlockGenesisStrategy(ctx context.Context, env *Env, st *state.State, chainID common.Hash) error {
 	lgr := env.Logger.New("stage", "set-start-block", "strategy", "genesis")
 	lgr.Info("setting start block", "id", chainID.Hex())
 
@@ -63,8 +63,7 @@ func SetStartBlockGenesisStrategy(env *Env, st *state.State, chainID common.Hash
 		return fmt.Errorf("failed to build L1 developer genesis: %w", err)
 	}
 
-	// to explicitly get the block with the correct hash
-	startBlock, err := env.L1Client.HeaderByNumber(context.Background(), devGenesis.ToBlock().Header().Number)
+	startBlock, err := env.L1Client.HeaderByNumber(ctx, devGenesis.ToBlock().Header().Number)
 	if err != nil {
 		return fmt.Errorf("failed to get start block: %w", err)
 	}
