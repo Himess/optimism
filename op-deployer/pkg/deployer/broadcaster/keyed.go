@@ -44,7 +44,7 @@ type KeyedBroadcasterOpts struct {
 
 func NewKeyedBroadcaster(cfg KeyedBroadcasterOpts) (*KeyedBroadcaster, error) {
 	mgrCfg := &txmgr.Config{
-		Backend:                   cfg.Client,
+		Backend:                   cfg.Client.Client,
 		ChainID:                   cfg.ChainID,
 		TxSendTimeout:             5 * time.Minute,
 		TxNotInMempoolTimeout:     time.Minute,

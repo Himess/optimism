@@ -14,11 +14,11 @@ import (
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/ethereum-optimism/optimism/op-service/ctxinterrupt"
+	"github.com/ethereum-optimism/optimism/op-service/eth"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
@@ -199,7 +199,8 @@ func DialL1Client(l1RpcURL string) (*L1Client, error) {
 	return NewL1Client(l1Rpc), nil
 }
 
-func (c *L1Client) HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error) {
+// not using using genesis.BlockRef to avoid a semantically looking cyclic dependency
+func (c *L1Client) HeaderByNumber(ctx context.Context, number *big.Int) (*eth.BlockRef, error) {
 	numberArg := ""
 	if number == nil {
 		numberArg = "latest"
@@ -211,8 +212,8 @@ func (c *L1Client) HeaderByNumber(ctx context.Context, number *big.Int) (*types.
 		return nil, fmt.Errorf("invalid block number: %s", number.String())
 	}
 
-	var head *types.Header
-	err := c.l1Rpc.CallContext(ctx, &head, "eth_getHeaderByNumber", numberArg, false)
+	var head *eth.BlockRef
+	err := c.l1Rpc.CallContext(ctx, &head, "eth_getHeaderByNumber", numberArg)
 	if err == nil && head == nil {
 		err = ethereum.NotFound
 	}

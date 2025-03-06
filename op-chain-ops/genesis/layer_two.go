@@ -39,8 +39,28 @@ var (
 
 type AllocsLoader func(mode L2AllocsMode) *foundry.ForgeAllocs
 
+type BlockRef struct {
+	Hash       common.Hash `json:"hash"`
+	Number     uint64      `json:"number"`
+	ParentHash common.Hash `json:"parentHash"`
+	Time       uint64      `json:"timestamp"`
+}
+
+func BlockRefFromHeader(header *types.Header, withSafeHash *common.Hash) *BlockRef {
+	hash := header.Hash() // Note: this is unsafe as Hash() is buggy in newer versions. Though for now (2025-03-06), its a non-issue considering there are no dependendants of this field
+	if withSafeHash != nil {
+		hash = *withSafeHash
+	}
+	return &BlockRef{
+		Hash:       hash,
+		Number:     header.Number.Uint64(),
+		ParentHash: header.ParentHash,
+		Time:       header.Time,
+	}
+}
+
 // BuildL2Genesis will build the L2 genesis block.
-func BuildL2Genesis(config *DeployConfig, dump *foundry.ForgeAllocs, l1StartBlock *types.Header) (*core.Genesis, error) {
+func BuildL2Genesis(config *DeployConfig, dump *foundry.ForgeAllocs, l1StartBlock *BlockRef) (*core.Genesis, error) {
 	genspec, err := NewL2Genesis(config, l1StartBlock)
 	if err != nil {
 		return nil, err

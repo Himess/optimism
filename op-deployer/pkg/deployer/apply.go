@@ -218,7 +218,7 @@ func ApplyPipeline(
 
 		if _, err := l1Host.CreateSelectFork(
 			script.ForkWithURLOrAlias("main"),
-			script.ForkWithBlockNumberU256(latest.Number),
+			script.ForkWithBlockNumberU256(big.NewInt(int64(latest.Number))),
 		); err != nil {
 			return fmt.Errorf("failed to select fork: %w", err)
 		}
