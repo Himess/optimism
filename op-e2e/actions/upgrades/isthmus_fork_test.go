@@ -595,7 +595,7 @@ func TestSetCodeTxTypePreIsthmus(gt *testing.T) {
 	// Verifier pipeline uses Isthmus starting at block 5
 	// Ensure verifier drops the batch with a SetCodeTx too early
 
-	t := actionsHelpers.NewDefaultTesting(gt)
+	t := helpers.NewDefaultTesting(gt)
 	p := &e2eutils.TestParams{
 		MaxSequencerDrift:   20,
 		SequencerWindowSize: 24,
@@ -617,7 +617,7 @@ func TestSetCodeTxTypePreIsthmus(gt *testing.T) {
 	store42Program := program.New().Sstore(0x42, 0x42)
 	callBobProgram := program.New().Call(nil, dp.Addresses.Bob, 1, 0, 0, 0, 0)
 
-	alloc := actionsHelpers.DefaultAlloc
+	alloc := helpers.DefaultAlloc
 	alloc.L2Alloc = make(map[common.Address]types.Account)
 	alloc.L2Alloc[aa] = types.Account{
 		Code: store42Program.Bytes(),
@@ -628,25 +628,25 @@ func TestSetCodeTxTypePreIsthmus(gt *testing.T) {
 
 	sd := e2eutils.Setup(t, dp, alloc)
 	log, captureLogger := testlog.CaptureLogger(t, log.LevelDebug)
-	miner, seqEngine, sequencer := actionsHelpers.SetupSequencerTest(t, sd, log)
+	miner, seqEngine, sequencer := helpers.SetupSequencerTest(t, sd, log)
 
 	l1F := miner.L1Client(t, sd.RollupCfg)
 	blobSrc := miner.BlobStore()
 	syncCfg := &sync.Config{}
-	cfg := actionsHelpers.DefaultVerifierCfg()
+	cfg := helpers.DefaultVerifierCfg()
 	jwtPath := e2eutils.WriteDefaultJWT(t)
-	verifierEngine := actionsHelpers.NewL2Engine(t, log.New("role", "verifier-engine"), sd.L2Cfg, jwtPath, actionsHelpers.EngineWithP2P())
+	verifierEngine := helpers.NewL2Engine(t, log.New("role", "verifier-engine"), sd.L2Cfg, jwtPath, helpers.EngineWithP2P())
 	engCl := verifierEngine.EngineClient(t, sd.RollupCfg)
 
 	newIsthmusTime := uint64(sd.RollupCfg.Genesis.L2Time + 10)
 	newRollupCfg := *sd.RollupCfg
 	newRollupCfg.IsthmusTime = &newIsthmusTime
-	verifier := actionsHelpers.NewL2Verifier(t, log.New("role", "verifier"), l1F, blobSrc, altda.Disabled, engCl, sd.RollupCfg, syncCfg, cfg.SafeHeadListener, &newRollupCfg)
+	verifier := helpers.NewL2Verifier(t, log.New("role", "verifier"), l1F, blobSrc, altda.Disabled, engCl, sd.RollupCfg, syncCfg, cfg.SafeHeadListener, &newRollupCfg)
 
 	rollupSeqCl := sequencer.RollupClient()
 	cl := seqEngine.EthClient()
 
-	batcher := actionsHelpers.NewL2Batcher(log, sd.RollupCfg, &actionsHelpers.BatcherCfg{
+	batcher := helpers.NewL2Batcher(log, sd.RollupCfg, &helpers.BatcherCfg{
 		MinL1TxSize:          0,
 		MaxL1TxSize:          128_000,
 		BatcherKey:           dp.Secrets.Batcher,
