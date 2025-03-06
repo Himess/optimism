@@ -15,13 +15,13 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/opcm"
+	opservice "github.com/ethereum-optimism/optimism/op-service"
 	opcrypto "github.com/ethereum-optimism/optimism/op-service/crypto"
 	"github.com/ethereum-optimism/optimism/op-service/ctxinterrupt"
 	"github.com/ethereum-optimism/optimism/op-service/ioutil"
 	"github.com/ethereum-optimism/optimism/op-service/jsonutil"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/urfave/cli/v2"
@@ -119,7 +119,7 @@ func Proxy(ctx context.Context, cfg ProxyConfig) (opcm.DeployProxyOutput, error)
 		return dpo, fmt.Errorf("failed to download artifacts: %w", err)
 	}
 
-	l1Client, err := ethclient.Dial(cfg.L1RPCUrl)
+	l1Client, err := opservice.DialL1Client(cfg.L1RPCUrl)
 	if err != nil {
 		return dpo, fmt.Errorf("failed to connect to L1 RPC: %w", err)
 	}

@@ -22,11 +22,11 @@ import (
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/pipeline"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/state"
 
+	opservice "github.com/ethereum-optimism/optimism/op-service"
 	opcrypto "github.com/ethereum-optimism/optimism/op-service/crypto"
 	"github.com/ethereum-optimism/optimism/op-service/ctxinterrupt"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/urfave/cli/v2"
 )
@@ -190,7 +190,7 @@ func ApplyPipeline(
 
 	var bcaster broadcaster.Broadcaster
 	var l1RPC *rpc.Client
-	var l1Client *ethclient.Client
+	var l1Client *opservice.L1Client
 	var l1Host *script.Host
 
 	initForkHost := func() error {
@@ -233,7 +233,7 @@ func ApplyPipeline(
 			return fmt.Errorf("failed to connect to L1 RPC: %w", err)
 		}
 
-		l1Client = ethclient.NewClient(l1RPC)
+		l1Client := opservice.NewL1Client(l1RPC)
 
 		chainID, err := l1Client.ChainID(ctx)
 		if err != nil {
@@ -262,7 +262,7 @@ func ApplyPipeline(
 			return fmt.Errorf("failed to connect to L1 RPC: %w", err)
 		}
 
-		l1Client = ethclient.NewClient(l1RPC)
+		l1Client = opservice.NewL1Client(l1RPC)
 
 		bcaster = new(broadcaster.CalldataBroadcaster)
 

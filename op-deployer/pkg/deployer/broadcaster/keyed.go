@@ -12,12 +12,12 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/script"
+	opservice "github.com/ethereum-optimism/optimism/op-service"
 	opcrypto "github.com/ethereum-optimism/optimism/op-service/crypto"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr/metrics"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/hashicorp/go-multierror"
 )
@@ -30,14 +30,14 @@ type KeyedBroadcaster struct {
 	lgr    log.Logger
 	mgr    txmgr.TxManager
 	bcasts []script.Broadcast
-	client *ethclient.Client
+	client *opservice.L1Client
 	mtx    sync.Mutex
 }
 
 type KeyedBroadcasterOpts struct {
 	Logger  log.Logger
 	ChainID *big.Int
-	Client  *ethclient.Client
+	Client  *opservice.L1Client
 	Signer  opcrypto.SignerFn
 	From    common.Address
 }

@@ -11,11 +11,11 @@ import (
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/artifacts"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/broadcaster"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/env"
+	opservice "github.com/ethereum-optimism/optimism/op-service"
 	opcrypto "github.com/ethereum-optimism/optimism/op-service/crypto"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/urfave/cli/v2"
 )
@@ -58,7 +58,7 @@ func UpgradeCLI(upgrader Upgrader) func(*cli.Context) error {
 		if err != nil {
 			return fmt.Errorf("failed to dial RPC %s: %w", l1RPC, err)
 		}
-		ethClient := ethclient.NewClient(rpcClient)
+		ethClient := opservice.NewL1Client(rpcClient)
 
 		chainID, err := ethClient.ChainID(ctx)
 		if err != nil {

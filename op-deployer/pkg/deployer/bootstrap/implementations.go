@@ -14,6 +14,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/broadcaster"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/opcm"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/env"
+	opservice "github.com/ethereum-optimism/optimism/op-service"
 	"github.com/ethereum-optimism/optimism/op-service/cliutil"
 	opcrypto "github.com/ethereum-optimism/optimism/op-service/crypto"
 	"github.com/ethereum-optimism/optimism/op-service/ctxinterrupt"
@@ -22,7 +23,6 @@ import (
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/urfave/cli/v2"
@@ -143,10 +143,11 @@ func Implementations(ctx context.Context, cfg ImplementationsConfig) (opcm.Deplo
 		return dio, fmt.Errorf("failed to download artifacts: %w", err)
 	}
 
-	l1Client, err := ethclient.Dial(cfg.L1RPCUrl)
+	l1RPC, err := rpc.Dial(cfg.L1RPCUrl)
 	if err != nil {
 		return dio, fmt.Errorf("failed to connect to L1 RPC: %w", err)
 	}
+	l1Client := opservice.NewL1Client(l1RPC)
 
 	chainID, err := l1Client.ChainID(ctx)
 	if err != nil {
@@ -165,11 +166,6 @@ func Implementations(ctx context.Context, cfg ImplementationsConfig) (opcm.Deplo
 	})
 	if err != nil {
 		return dio, fmt.Errorf("failed to create broadcaster: %w", err)
-	}
-
-	l1RPC, err := rpc.Dial(cfg.L1RPCUrl)
-	if err != nil {
-		return dio, fmt.Errorf("failed to connect to L1 RPC: %w", err)
 	}
 
 	l1Host, err := env.DefaultForkedScriptHost(

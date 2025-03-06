@@ -12,16 +12,16 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/foundry"
 
+	opservice "github.com/ethereum-optimism/optimism/op-service"
 	"github.com/ethereum-optimism/optimism/op-service/jsonutil"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 )
 
 type Env struct {
 	StateWriter  StateWriter
 	L1ScriptHost *script.Host
-	L1Client     *ethclient.Client
+	L1Client     *opservice.L1Client
 	Broadcaster  broadcaster.Broadcaster
 	Deployer     common.Address
 	Logger       log.Logger

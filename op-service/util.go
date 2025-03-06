@@ -12,7 +12,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/ethereum-optimism/optimism/op-service/ctxinterrupt"
 
@@ -169,4 +173,48 @@ func Parse256BitChainID(in string) (common.Hash, error) {
 func U64UtilPtr(in uint64) *hexutil.Uint64 {
 	util := hexutil.Uint64(in)
 	return &util
+}
+
+// this is a wrapper over ethclient to fix certain methods getting wrongly exposed by ethclient
+type L1Client struct {
+	l1Rpc             *rpc.Client
+	*ethclient.Client // fallback for unimplemented methods
+}
+
+func NewL1Client(l1Rpc *rpc.Client) *L1Client {
+	return &L1Client{
+		l1Rpc:  l1Rpc,
+		Client: ethclient.NewClient(l1Rpc),
+	}
+}
+
+func DialL1Client(l1RpcURL string) (*L1Client, error) {
+	if l1RpcURL == "" {
+		return nil, fmt.Errorf("l1 Rpc Url is required")
+	}
+	l1Rpc, err := rpc.Dial(l1RpcURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to L1 RPC: %w", err)
+	}
+	return NewL1Client(l1Rpc), nil
+}
+
+func (c *L1Client) HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error) {
+	numberArg := ""
+	if number == nil {
+		numberArg = "latest"
+	} else if number.Sign() >= 0 {
+		numberArg = hexutil.EncodeBig(number)
+	} else if number.IsInt64() {
+		numberArg = rpc.BlockNumber(number.Int64()).String()
+	} else {
+		return nil, fmt.Errorf("invalid block number: %s", number.String())
+	}
+
+	var head *types.Header
+	err := c.l1Rpc.CallContext(ctx, &head, "eth_getHeaderByNumber", numberArg, false)
+	if err == nil && head == nil {
+		err = ethereum.NotFound
+	}
+	return head, err
 }
