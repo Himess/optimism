@@ -63,16 +63,11 @@ func SetStartBlockGenesisStrategy(ctx context.Context, env *Env, st *state.State
 		return fmt.Errorf("failed to build L1 developer genesis: %w", err)
 	}
 
-	startBlock, err := env.L1Client.HeaderByNumber(ctx, devGenesis.ToBlock().Header().Number)
-	if err != nil {
-		return fmt.Errorf("failed to get start block: %w", err)
-	}
-
 	thisChainState.StartBlock = &genesis.BlockRef{
-		Number:     startBlock.Number,
-		Hash:       startBlock.Hash,
-		ParentHash: startBlock.ParentHash,
-		Time:       startBlock.Time,
+		Number:     devGenesis.ToBlock().Header().Number.Uint64(),
+		Hash:       devGenesis.ToBlock().Header().Hash(),
+		ParentHash: devGenesis.ToBlock().Header().ParentHash,
+		Time:       devGenesis.ToBlock().Header().Time,
 	}
 
 	return nil
