@@ -1,0 +1,15 @@
+# Configuration file for op-acceptor
+#
+# All acceptance tests need to be registered here for op-acceptor to run them.
+
+gates:
+  - id: localnet
+    description: "Localnet validation gate"
+    tests:
+      - name: TestFindRPCEndpoints
+        package: github.com/ethereum-optimism/optimism/kurtosis-devnet/pkg/kurtosis/api/run
+      - name: TestSystemWrapETH
+        package: github.com/ethereum-optimism/optimism/kurtosis-devnet/tests/interop
+      - name: TestInteropSystemNoop
+        package: github.com/ethereum-optimism/optimism/kurtosis-devnet/tests/interop
+
